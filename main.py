@@ -412,6 +412,25 @@ def save_rendered_results(args, dir, final_color, mesh):
     img = transforms.ToPILImage()(img)
     img.save(os.path.join(dir, f"final_cluster.png"))
 
+    gif = []
+
+    for i in np.arange(0, np.pi * 2, np.pi / 180 * 10):
+        img, mask = kal_render.render_single_view(mesh, elev = np.pi / 3, azim=float(i),
+                                                  radius=2.5,
+                                                  background=torch.tensor([1, 1, 1]).to(device).float(),
+                                                  return_mask=True)
+
+        img = img[0].cpu()
+        mask = mask[0].cpu()
+        # Manually add alpha channel using background color
+        alpha = torch.ones(img.shape[1], img.shape[2])
+        alpha[torch.where(mask == 0)] = 0
+        img = torch.cat((img, alpha.unsqueeze(0)), dim=0)
+        img = transforms.ToPILImage()(img)
+        gif.append(img)
+    gif[0].save('temp_result.gif', save_all=True, optimize=False, append_images=gif[1:], loop=0)
+    
+
 
 def update_mesh(mlp, network_input, prior_color, sampled_mesh, vertices):
     pred_rgb, pred_normal = mlp(network_input)
